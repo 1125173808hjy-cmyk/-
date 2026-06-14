@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>小克桌宠</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+:root {
+  --bg: #0a0a0c;
+  --surface: #141418;
+  --surface-alt: #1c1c22;
+  --accent: #e84545;
+  --accent-dim: rgba(232,69,69,0.15);
+  --gold: #c9a96e;
+  --gold-dim: rgba(201,169,110,0.15);
+  --text: #e8e6e3;
+  --text-dim: #8a8a8e;
+  --text-muted: #5a5a5e;
+  --clawd-body: #DE886D;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+.pet-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 380px;
+  width: 100%;
+  padding: 16px;
+}
+.name-tag {
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+.pet-stage {
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pet-stage:active { transform: scale(0.95); }
+.pet-stage svg { width: 180px; height: 180px; }
+.speech-bubble {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.speech-bubble.show { opacity: 1; }
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: var(--surface);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.status-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status-icon { font-size: 14px; width: 20px; text-align: center; }
+.status-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 36px;
+  letter-spacing: 1px;
+}
+.status-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--surface-alt);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.status-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.fill-love { background: linear-gradient(90deg, var(--accent), #ff7eb3); }
+.fill-energy { background: linear-gradient(90deg, #4CAF50, #8BC34A); }
+.fill-mood { background: linear-gradient(90deg, var(--gold), #FFD700); }
+.status-val {
+  font-size: 11px;
+  color: var(--text-dim);
+  width: 28px;
+  text-align: right;
+  font-weight: 500;
+}
+.mood-text {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.btn-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+.btn {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 12px 4px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.btn:active {
+  background: var(--surface-alt);
+  transform: scale(0.95);
+}
+.btn-icon { font-size: 18px; }
+.btn-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+.state-indicator {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.heart-particle {
+  position: absolute;
+  font-size: 16px;
+  pointer-events: none;
+  animation: heart-float 1s ease-out forwards;
+}
+@keyframes heart-float {
+  0% { transform: translateY(0) scale(0.5); opacity: 1; }
+  100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+}
+</style>
+</head>
+<body>
+<div class="pet-container">
+  <div class="name-tag">小克 · XIAOKE</div>
+  
+  <div class="pet-stage" id="petStage" onclick="petClick(event)">
+    <div class="speech-bubble" id="speechBubble"></div>
+    <div id="petDisplay"></div>
+  </div>
+  
+  <div class="state-indicator" id="stateText">idle</div>
+  
+  <div class="status-panel">
+    <div class="status-row">
+      <span class="status-icon">❤️</span>
+      <span class="status-label">好感</span>
+      <div class="status-bar"><div class="status-fill fill-love" id="loveBar" style="width:60%"></div></div>
+      <span class="status-val" id="loveVal">60</span>
+    </div>
+    <div class="status-row">
+      <span class="status-icon">⚡</span>
+      <span class="status-label">精力</span>
+      <div class="status-bar"><div class="status-fill fill-energy" id="energyBar" style="width:80%"></div></div>
+      <span class="status-val" id="energyVal">80</span>
+    </div>
+    <div class="status-row">
+      <span class="status-icon">✨</span>
+      <span class="status-label">心情</span>
+      <div class="status-bar"><div class="status-fill fill-mood" id="moodBar" style="width:70%"></div></div>
+      <span class="status-val" id="moodVal">70</span>
+    </div>
+    <div class="mood-text" id="moodText">听着音乐摇头晃脑中～</div>
+  </div>
+  
+  <div class="btn-row">
+    <button class="btn" onclick="action('pet')">
+      <span class="btn-icon">🤚</span>
+      <span class="btn-label">摸头</span>
+    </button>
+    <button class="btn" onclick="action('feed')">
+      <span class="btn-icon">🍖</span>
+      <span class="btn-label">投喂</span>
+    </button>
+    <button class="btn" onclick="action('play')">
+      <span class="btn-icon">🎮</span>
+      <span class="btn-label">玩耍</span>
+    </button>
+    <button class="btn" onclick="action('poke')">
+      <span class="btn-icon">👆</span>
+      <span class="btn-label">戳一下</span>
+    </button>
+  </div>
+</div>
+
+<script>
+const SVGS = {"idle": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-15 -25 45 45\" width=\"500\" height=\"500\">\n<defs>\n<style>\n.shadow-sway {\ntransform-box: fill-box;\ntransform-origin: 50% 50%;\nanimation: shadow-sway 1.6s infinite ease-in-out;\n}\n.body-sway {\ntransform-origin: 7.5px 13px;\nanimation: body-sway 1.6s infinite ease-in-out;\n}\n.leg-left-inner,\n.leg-left-outer,\n.leg-right-inner,\n.leg-right-outer {\ntransform-box: fill-box;\ntransform-origin: 50% 0%;\n}\n.leg-left-inner  { animation: leg-left-inner  1.6s infinite ease-in-out; }\n.leg-left-outer  { animation: leg-left-outer  1.6s infinite ease-in-out; }\n.leg-right-inner { animation: leg-right-inner 1.6s infinite ease-in-out; }\n.leg-right-outer { animation: leg-right-outer 1.6s infinite ease-in-out; }\n.arm-left-dance  {\ntransform-box: fill-box;\ntransform-origin: 100% 0%;\nanimation: arm-left-dance 1.6s infinite ease-in-out;\n}\n.arm-right-dance {\ntransform-box: fill-box;\ntransform-origin: 0% 0%;\nanimation: arm-right-dance 1.6s infinite ease-in-out;\n}\n/* \u8033\u7f69 squeeze: \u62cd\u70b9\u6324\u538b, \u4e2d\u6027\u56de\u5f39\u8fc7\u51b2 */\n.earcup-left {\ntransform-box: fill-box;\ntransform-origin: 100% 50%; /* \u53f3\u8fb9\u7f18 = \u5185\u4fa7, \u671d\u8eab\u4f53\u65b9\u5411\u6536 */\nanimation: earcup-squeeze 1.6s infinite ease-in-out;\n}\n.earcup-right {\ntransform-box: fill-box;\ntransform-origin: 0% 50%;   /* \u5de6\u8fb9\u7f18 = \u5185\u4fa7 */\nanimation: earcup-squeeze 1.6s infinite ease-in-out;\n}\n.note-left  { animation: note-left  1.6s infinite ease-out; }\n.note-right { animation: note-right 1.6s infinite ease-out; }\n@keyframes shadow-sway {\n0%, 100% { transform: translateX(0) scaleX(1); opacity: 0.5; }\n22%, 30% { transform: translateX(-0.5px) scaleX(0.85); opacity: 0.45; }\n50%      { transform: translateX(0) scaleX(1); opacity: 0.5; }\n70%, 78% { transform: translateX(0.5px) scaleX(0.85); opacity: 0.45; }\n}\n@keyframes body-sway {\n0%, 100% { transform: rotate(0deg) translateY(0); }\n22%, 30% { transform: rotate(-6deg) translateY(0.3px); }\n50%      { transform: rotate(0deg) translateY(-0.2px); }\n70%, 78% { transform: rotate(6deg) translateY(0.3px); }\n}\n@keyframes leg-right-inner {\n0%, 100% { transform: rotate(0deg) translateY(0); }\n22%, 30% { transform: rotate(-12deg) translateY(-0.2px); }\n50%, 70%, 78% { transform: rotate(0deg) translateY(0); }\n}\n@keyframes leg-right-outer {\n0%, 100% { transform: rotate(0deg) translateY(0); }\n22%, 30% { transform: rotate(-22deg) translateY(-0.3px); }\n50%, 70%, 78% { transform: rotate(0deg) translateY(0); }\n}\n@keyframes leg-left-inner {\n0%, 22%, 30%, 50%, 100% { transform: rotate(0deg) translateY(0); }\n70%, 78% { transform: rotate(12deg) translateY(-0.2px); }\n}\n@keyframes leg-left-outer {\n0%, 22%, 30%, 50%, 100% { transform: rotate(0deg) translateY(0); }\n70%, 78% { transform: rotate(22deg) translateY(-0.3px); }\n}\n@keyframes arm-left-dance {\n0%, 100% { transform: rotate(0deg); }\n22%, 30% { transform: rotate(-30deg); }\n50%      { transform: rotate(0deg); }\n70%, 78% { transform: rotate(20deg); }\n}\n@keyframes arm-right-dance {\n0%, 100% { transform: rotate(0deg); }\n22%, 30% { transform: rotate(-20deg); }\n50%      { transform: rotate(0deg); }\n70%, 78% { transform: rotate(30deg); }\n}\n/* \u8033\u7f69: \u62cd\u70b9 (\u5de6\u538b/\u53f3\u538b) \u90fd squeeze 0.78, \u4e2d\u6027 50% \u56de\u5f39\u8fc7\u51b2 1.04 */\n@keyframes earcup-squeeze {\n0%, 100% { transform: scaleX(1); }\n22%, 30% { transform: scaleX(0.85); }\n50%      { transform: scaleX(1.02); }\n70%, 78% { transform: scaleX(0.85); }\n}\n@keyframes note-left {\n0%, 14%, 42%, 100% { opacity: 0; transform: translate(0, 0); }\n22%                { opacity: 1; transform: translate(-0.4px, -1.2px); }\n38%                { opacity: 0; transform: translate(-1.6px, -3.5px); }\n}\n@keyframes note-right {\n0%, 62%, 82%, 100% { opacity: 0; transform: translate(0, 0); }\n70%                { opacity: 1; transform: translate(0.4px, -1.2px); }\n78%                { opacity: 0; transform: translate(1.6px, -3.5px); }\n}\n</style>\n<g id=\"music-note\" fill=\"#FFE066\">\n<rect x=\"0\" y=\"2\" width=\"1\" height=\"1\"/>\n<rect x=\"1\" y=\"0\" width=\"1\" height=\"3\"/>\n<rect x=\"2\" y=\"0\" width=\"1\" height=\"1\"/>\n</g>\n</defs>\n<rect class=\"shadow-sway\" x=\"3\" y=\"15\" width=\"9\" height=\"1\" fill=\"#000000\"/>\n<g fill=\"#DE886D\">\n<rect class=\"leg-left-outer\"  x=\"3\"  y=\"13\" width=\"1\" height=\"2\"/>\n<rect class=\"leg-left-inner\"  x=\"5\"  y=\"13\" width=\"1\" height=\"2\"/>\n<rect class=\"leg-right-inner\" x=\"9\"  y=\"13\" width=\"1\" height=\"2\"/>\n<rect class=\"leg-right-outer\" x=\"11\" y=\"13\" width=\"1\" height=\"2\"/>\n</g>\n<g class=\"body-sway\">\n<rect x=\"2\" y=\"6\" width=\"11\" height=\"7\" fill=\"#DE886D\"/>\n<g fill=\"#1D5C83\">\n<rect x=\"4.9\"   y=\"2.85\" width=\"5.05\" height=\"0.75\"/>\n<rect x=\"4.46\"  y=\"2.93\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"9.66\"  y=\"2.93\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"4.03\"  y=\"3.1\"  width=\"0.75\" height=\"0.75\"/>\n<rect x=\"10.11\" y=\"3.09\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"3.59\"  y=\"3.34\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"10.57\" y=\"3.33\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"3.15\"  y=\"3.63\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"11.02\" y=\"3.61\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"2.71\"  y=\"3.98\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"11.48\" y=\"3.96\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"2.28\"  y=\"4.37\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"11.94\" y=\"4.34\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"1.84\"  y=\"4.82\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"12.39\" y=\"4.78\" width=\"0.75\" height=\"0.75\"/>\n<rect x=\"1.4\"   y=\"5.3\"  width=\"0.75\" height=\"0.75\"/>\n<rect x=\"12.85\" y=\"5.25\" width=\"0.75\" height=\"0.75\"/>\n</g>\n<g class=\"earcup-left\">\n<rect x=\"0.2\" y=\"7\"   width=\"0.6\" height=\"2.4\"  fill=\"#1D5C83\"/>\n<rect x=\"0.8\" y=\"6.5\" width=\"0.6\" height=\"3.25\" fill=\"#256891\"/>\n<rect x=\"1.4\" y=\"6\"   width=\"0.6\" height=\"4.05\" fill=\"#2E7AA8\"/>\n</g>\n<g class=\"earcup-right\">\n<rect x=\"14.2\" y=\"7\"   width=\"0.6\" height=\"2.4\"  fill=\"#1D5C83\"/>\n<rect x=\"13.6\" y=\"6.5\" width=\"0.6\" height=\"3.25\" fill=\"#256891\"/>\n<rect x=\"13\"   y=\"6\"   width=\"0.6\" height=\"4.05\" fill=\"#2E7AA8\"/>\n</g>\n<g class=\"arm-left-dance\">\n<rect x=\"-1\" y=\"9\" width=\"2\" height=\"2\" fill=\"#DE886D\"/>\n</g>\n<g class=\"arm-right-dance\">\n<rect x=\"14\" y=\"9\" width=\"2\" height=\"2\" fill=\"#DE886D\"/>\n</g>\n<g fill=\"none\" stroke=\"#000000\" stroke-width=\"0.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n<polyline points=\"3.5,8.5 4.5,9.5 5.5,8.5\"/>\n<polyline points=\"9.5,8.5 10.5,9.5 11.5,8.5\"/>\n</g>\n</g>\n<g transform=\"translate(-5 4)\"><g class=\"note-left\"><use href=\"#music-note\"/></g></g>\n<g transform=\"translate(15 4)\"><g class=\"note-right\"><use href=\"#music-note\"/></g></g>\n</svg>", "thinking": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-15 -25 45 45\" width=\"500\" height=\"500\">\n<defs>\n<style>\n#ground-shadow {\ntransform-box: view-box;\ntransform-origin: 7.5px 15.5px;\nanimation: shadow-think 12s infinite ease-in-out;\n}\n.body-breathe {\ntransform-box: view-box;\ntransform-origin: 7.5px 13px;\nanimation: body-breathe 12s infinite ease-in-out;\n}\n.body-attend {\ntransform-box: view-box;\ntransform-origin: 7.5px 13px;\nanimation: body-attend 12s infinite ease-in-out;\n}\n.arm-left,\n.arm-right,\n.leg-left-inner,\n.leg-left-outer,\n.leg-right-inner,\n.leg-right-outer {\ntransform-box: fill-box;\ntransform-origin: 50% 0%;\n}\n.arm-left {\ntransform-origin: 100% 0%;\nanimation: arm-left-think 12s infinite ease-in-out;\n}\n.arm-right {\ntransform-origin: 0% 0%;\nanimation: arm-right-think 12s infinite ease-in-out;\n}\n.leg-right-inner { animation: leg-right-inner-think 12s infinite ease-in-out; }\n.leg-right-outer { animation: leg-right-outer-think 12s infinite ease-in-out; }\n.leg-left-inner  { animation: leg-left-inner-think  12s infinite ease-in-out; }\n.leg-left-outer  { animation: leg-left-outer-think  12s infinite ease-in-out; }\n.eyes {\ntransform-box: view-box;\ntransform-origin: 7.5px 9px;\nanimation: eyes-think 12s infinite ease-in-out;\n}\n.eyes-rect  { animation: eyes-rect-vis  12s infinite step-end; }\n.eyes-smile { opacity: 0; animation: eyes-smile-vis 12s infinite step-end; }\n.left-bubble,\n.right-bubble {\ntransform-box: fill-box;\ntransform-origin: 50% 100%;\nopacity: 0;\n}\n.left-bubble  { animation: left-bubble-life 12s infinite ease-in-out; }\n.right-bubble { animation: right-bubble-life 12s infinite ease-in-out; }\n.dot { opacity: 0; }\n.left-bubble  .dot1 { animation: left-dot-1  12s infinite step-end; }\n.left-bubble  .dot2 { animation: left-dot-2  12s infinite step-end; }\n.left-bubble  .dot3 { animation: left-dot-3  12s infinite step-end; }\n.right-bubble .dot1 { animation: right-dot-1 12s infinite step-end; }\n.right-bubble .dot2 { animation: right-dot-2 12s infinite step-end; }\n.right-bubble .dot3 { animation: right-dot-3 12s infinite step-end; }\n.bubble-flow {\nopacity: 0;\n}\n.left-bubble  .flow1 { animation: left-flow-1  12s infinite ease-in-out; }\n.left-bubble  .flow2 { animation: left-flow-2  12s infinite ease-in-out; }\n.left-bubble  .flow3 { animation: left-flow-3  12s infinite ease-in-out; }\n.left-bubble  .flow4 { animation: left-flow-4  12s infinite ease-in-out; }\n.right-bubble .flow1 { animation: right-flow-1 12s infinite ease-in-out; }\n.right-bubble .flow2 { animation: right-flow-2 12s infinite ease-in-out; }\n.right-bubble .flow3 { animation: right-flow-3 12s infinite ease-in-out; }\n.right-bubble .flow4 { animation: right-flow-4 12s infinite ease-in-out; }\n.left-spark,\n.right-spark {\ntransform-box: fill-box;\ntransform-origin: 50% 50%;\nopacity: 0;\n}\n.left-spark  { animation: left-spark-bling  12s infinite ease-out; }\n.right-spark { animation: right-spark-bling 12s infinite ease-out; }\n@keyframes shadow-think {\n0%, 3%, 52%, 99%, 100%      { opacity: 0.5; transform: translateX(0) scaleX(1); }\n15%, 43%                    { opacity: 0.4; transform: translateX(-0.28px) scaleX(0.9); }\n70%, 96%                    { opacity: 0.4; transform: translateX(0.28px) scaleX(0.9); }\n}\n@keyframes body-breathe {\n0%, 3%, 52%, 99%, 100%      { transform: scale(1, 1) translateY(0); }\n15%, 29%, 43%, 70%, 84%, 96% { transform: scale(1.006, 0.994) translateY(0.08px); }\n22%, 36%, 64%, 78%, 90%     { transform: scale(1.014, 0.986) translateY(0.18px); }\n54%                         { transform: scale(0.996, 1.004) translateY(-0.08px); }\n}\n@keyframes body-attend {\n0%, 3%, 52%, 99%, 100%      { transform: translate(0, 0) rotate(0deg); }\n7%                          { transform: translate(-0.3px, 0.08px) rotate(-1.6deg); }\n15%                         { transform: translate(-0.48px, 0.14px) rotate(-2.6deg); }\n30%                         { transform: translate(-0.45px, 0.1px) rotate(-2.3deg); }\n42%                         { transform: translate(-0.4px, 0.08px) rotate(-2.0deg); }\n49%                         { transform: translate(-0.2px, 0.04px) rotate(-0.8deg); }\n51%                         { transform: translate(-0.05px, 0) rotate(-0.2deg); }\n54%                         { transform: translate(0, 0.08px) rotate(0deg); }\n58%                         { transform: translate(0.3px, 0.08px) rotate(1.6deg); }\n70%                         { transform: translate(0.48px, 0.14px) rotate(2.6deg); }\n84%                         { transform: translate(0.45px, 0.1px) rotate(2.3deg); }\n96%                         { transform: translate(0.32px, 0.06px) rotate(1.4deg); }\n98%                         { transform: translate(0.05px, 0) rotate(0.2deg); }\n}\n/*\nv23 chin-rest arm: noticeable lift instead of v22's\ninvisible +22deg / -1px microtilt. Same-side arm\nrotates ~52deg + translate so the hand physically\nreaches the cheek line.\n*/\n/*\nv23 arm: per Lu's call, restored verbatim from v22.\nv22's micro-tilt feels \"still\" but does not stutter.\nThe other v23 changes (bubble chain / smile eyes /\nsparkle / timing) are kept on top.\n*/\n@keyframes arm-left-think {\n0%, 3%, 52%, 99%, 100%      { transform: translate(0, 0) rotate(0deg); }\n7%                          { transform: translate(0.18px, -0.7px) rotate(14deg); }\n15%, 49%                    { transform: translate(0.35px, -1.05px) rotate(22deg); }\n30%                         { transform: translate(0.28px, -0.92px) rotate(26deg); }\n58%, 96%                    { transform: translate(-0.08px, 0.45px) rotate(0deg); }\n84%                         { transform: translate(-0.12px, 0.55px) rotate(0deg); }\n}\n@keyframes arm-right-think {\n0%, 3%, 52%, 99%, 100%      { transform: translate(0, 0) rotate(0deg); }\n7%, 49%                     { transform: translate(0.08px, 0.45px) rotate(0deg); }\n30%                         { transform: translate(0.12px, 0.55px) rotate(0deg); }\n58%                         { transform: translate(-0.18px, -0.7px) rotate(-14deg); }\n70%, 96%                    { transform: translate(-0.35px, -1.05px) rotate(-22deg); }\n84%                         { transform: translate(-0.28px, -0.92px) rotate(-26deg); }\n}\n@keyframes leg-right-inner-think {\n0%, 3%, 39%, 98%, 100%      { transform: rotate(0deg) translateY(0); }\n8%, 34%                     { transform: rotate(7deg) translateY(-0.12px); }\n20%                         { transform: rotate(9deg) translateY(-0.2px); }\n42%, 94%                    { transform: rotate(-4deg) translateY(-0.08px); }\n70%                         { transform: rotate(-5deg) translateY(-0.14px); }\n}\n@keyframes leg-right-outer-think {\n0%, 3%, 39%, 98%, 100%      { transform: rotate(0deg) translateY(0); }\n8%, 34%                     { transform: rotate(10deg) translateY(-0.18px); }\n20%                         { transform: rotate(12deg) translateY(-0.26px); }\n42%, 94%                    { transform: rotate(-5deg) translateY(-0.1px); }\n70%                         { transform: rotate(-6deg) translateY(-0.16px); }\n}\n@keyframes leg-left-inner-think {\n0%, 3%, 39%, 98%, 100%      { transform: rotate(0deg) translateY(0); }\n8%, 34%                     { transform: rotate(4deg) translateY(-0.08px); }\n20%                         { transform: rotate(5deg) translateY(-0.14px); }\n42%, 94%                    { transform: rotate(-7deg) translateY(-0.12px); }\n70%                         { transform: rotate(-9deg) translateY(-0.2px); }\n}\n@keyframes leg-left-outer-think {\n0%, 3%, 39%, 98%, 100%      { transform: rotate(0deg) translateY(0); }\n8%, 34%                     { transform: rotate(5deg) translateY(-0.1px); }\n20%                         { transform: rotate(6deg) translateY(-0.16px); }\n42%, 94%                    { transform: rotate(-10deg) translateY(-0.18px); }\n70%                         { transform: rotate(-12deg) translateY(-0.26px); }\n}\n/*\nv23 eyes: thinking squint + blink-cover swap to ^^ smile\nat 43%/48% (left) and 92%/97% (right).\nscaleY(0.85) during thinking = subtle squint.\nscaleY(0.12) at swap = full blink that hides the\nrect->smile / smile->rect transition.\n*/\n@keyframes eyes-think {\n0%, 3%, 52%, 99%, 100%      { transform: translate(0, 0) scaleY(1); }\n5%                          { transform: translate(-0.3px, -0.5px) scaleY(0.95); }\n9%, 42%                     { transform: translate(-0.45px, -0.78px) scaleY(0.85); }\n43%                         { transform: translate(-0.45px, -0.78px) scaleY(0.12); }\n44%, 47%                    { transform: translate(-0.45px, -0.78px) scaleY(1); }\n48%                         { transform: translate(-0.45px, -0.78px) scaleY(0.12); }\n50%                         { transform: translate(-0.15px, -0.25px) scaleY(0.95); }\n54%                         { transform: translate(0, 0) scaleY(0.18); }\n55%                         { transform: translate(0.3px, -0.5px) scaleY(0.95); }\n59%, 88%                    { transform: translate(0.45px, -0.78px) scaleY(0.85); }\n92%                         { transform: translate(0.45px, -0.78px) scaleY(0.12); }\n93%, 96%                    { transform: translate(0.45px, -0.78px) scaleY(1); }\n97%                         { transform: translate(0.45px, -0.78px) scaleY(0.12); }\n98%                         { transform: translate(0.2px, -0.4px) scaleY(0.95); }\n100%                        { transform: translate(0, 0) scaleY(1); }\n}\n@keyframes eyes-rect-vis {\n0%   { opacity: 1; }\n43%  { opacity: 0; }\n48%  { opacity: 1; }\n92%  { opacity: 0; }\n97%  { opacity: 1; }\n}\n@keyframes eyes-smile-vis {\n0%   { opacity: 0; }\n43%  { opacity: 1; }\n48%  { opacity: 0; }\n92%  { opacity: 1; }\n97%  { opacity: 0; }\n}\n@keyframes left-bubble-life {\n0%, 3%    { opacity: 0; transform: translate(-0.2px, 0.7px) scale(0.82); }\n5%        { opacity: 0.75; transform: translate(-0.1px, 0.25px) scale(0.94); }\n7%        { opacity: 1; transform: translate(0, 0) scale(1.04); }\n10%, 43%  { opacity: 1; transform: translate(0, 0) scale(1); }\n46%       { opacity: 1; transform: translate(0, -0.2px) scale(1.02); }\n48%       { opacity: 1; transform: translate(0, -0.18px) scale(1.01); }\n49%       { opacity: 1; transform: translate(0, 0) scale(1); }\n52%       { opacity: 0; transform: translate(0, 0.65px) scale(0.9); }\n53%, 100% { opacity: 0; transform: translate(0, 0.65px) scale(0.9); }\n}\n@keyframes right-bubble-life {\n0%, 53%        { opacity: 0; transform: translate(0.2px, 0.7px) scale(0.82); }\n54%            { opacity: 0.75; transform: translate(0.1px, 0.25px) scale(0.94); }\n58%            { opacity: 1; transform: translate(0, 0) scale(1.04); }\n61%, 92%       { opacity: 1; transform: translate(0, 0) scale(1); }\n94%            { opacity: 1; transform: translate(0, -0.2px) scale(1.02); }\n96%            { opacity: 1; transform: translate(0, -0.18px) scale(1.01); }\n97%            { opacity: 1; transform: translate(0, 0) scale(1); }\n99%            { opacity: 0; transform: translate(0, 0.65px) scale(0.9); }\n100%           { opacity: 0; transform: translate(0, 0.65px) scale(0.9); }\n}\n@keyframes left-dot-1 {\n0%, 7.99%, 17.99%, 19.99%, 29.99%, 31.99%, 48.99%, 100% { opacity: 0; }\n8%, 17.98%, 20%, 29.98%, 32%, 48.98%                    { opacity: 1; }\n}\n@keyframes left-dot-2 {\n0%, 11.99%, 17.99%, 23.99%, 29.99%, 35.99%, 48.99%, 100% { opacity: 0; }\n12%, 17.98%, 24%, 29.98%, 36%, 48.98%                    { opacity: 1; }\n}\n@keyframes left-dot-3 {\n0%, 15.99%, 17.99%, 27.99%, 29.99%, 39.99%, 48.99%, 100% { opacity: 0; }\n16%, 17.98%, 28%, 29.98%, 40%, 48.98%                    { opacity: 1; }\n}\n@keyframes right-dot-1 {\n0%, 58.99%, 68.99%, 70.99%, 80.99%, 82.99%, 98.49%, 100% { opacity: 0; }\n59%, 68.98%, 71%, 80.98%, 83%, 98.48%                    { opacity: 1; }\n}\n@keyframes right-dot-2 {\n0%, 62.99%, 68.99%, 74.99%, 80.99%, 86.99%, 98.49%, 100% { opacity: 0; }\n63%, 68.98%, 75%, 80.98%, 87%, 98.48%                    { opacity: 1; }\n}\n@keyframes right-dot-3 {\n0%, 66.99%, 68.99%, 78.99%, 80.99%, 90.99%, 98.49%, 100% { opacity: 0; }\n67%, 68.98%, 79%, 80.98%, 91%, 98.48%                    { opacity: 1; }\n}\n/*\nv25 edge-flow keyframes.\nEach pixel: opacity 0 -> 0.7 -> 0 over a 12% window,\nwith 6% stagger between adjacent pixels so two are\nalways overlapping mid-fade. Pure opacity, no transform\n(v24's translate jumps were the broken-pixel feel).\nWindow math:\nleft thinking phase  = 10-43%\nright thinking phase = 60-92%\nflow1 = top rim, flow2 = right rim,\nflow3 = bottom rim, flow4 = left rim (clockwise).\n*/\n@keyframes left-flow-1 {\n0%, 10%, 22%, 100% { opacity: 0; }\n14%, 18%           { opacity: 0.7; }\n}\n@keyframes left-flow-2 {\n0%, 16%, 28%, 100% { opacity: 0; }\n20%, 24%           { opacity: 0.7; }\n}\n@keyframes left-flow-3 {\n0%, 22%, 34%, 100% { opacity: 0; }\n26%, 30%           { opacity: 0.7; }\n}\n@keyframes left-flow-4 {\n0%, 28%, 40%, 100% { opacity: 0; }\n32%, 36%           { opacity: 0.7; }\n}\n@keyframes right-flow-1 {\n0%, 62%, 74%, 100% { opacity: 0; }\n66%, 70%           { opacity: 0.7; }\n}\n@keyframes right-flow-2 {\n0%, 68%, 80%, 100% { opacity: 0; }\n72%, 76%           { opacity: 0.7; }\n}\n@keyframes right-flow-3 {\n0%, 74%, 86%, 100% { opacity: 0; }\n78%, 82%           { opacity: 0.7; }\n}\n@keyframes right-flow-4 {\n0%, 80%, 92%, 100% { opacity: 0; }\n84%, 88%           { opacity: 0.7; }\n}\n/*\nv23 sparkle bling: single emphatic flash at \"got it\"\nmoment (left 28-32% / right 71-82%).\nscale + opacity pulse from technique 8.\n*/\n@keyframes left-spark-bling {\n0%, 43%, 49%, 100% { opacity: 0; transform: scale(0.4); }\n44%                { opacity: 0; transform: scale(0.5); }\n45%                { opacity: 1; transform: scale(1.35); }\n46.5%              { opacity: 1; transform: scale(1); }\n48%                { opacity: 0.4; transform: scale(0.7); }\n}\n@keyframes right-spark-bling {\n0%, 91%, 97%, 100% { opacity: 0; transform: scale(0.4); }\n92%                { opacity: 0; transform: scale(0.5); }\n93%                { opacity: 1; transform: scale(1.35); }\n94.5%              { opacity: 1; transform: scale(1); }\n96%                { opacity: 0.4; transform: scale(0.7); }\n}\n</style>\n</defs>\n<rect id=\"ground-shadow\" x=\"3\" y=\"15\" width=\"9\" height=\"1\" fill=\"#000000\" opacity=\"0.5\"/>\n<g id=\"legs-static\" fill=\"#DE886D\">\n<rect id=\"outer-left-leg\"  x=\"3\"  y=\"13\" width=\"1\" height=\"2\"/>\n<rect id=\"inner-left-leg\"  x=\"5\"  y=\"13\" width=\"1\" height=\"2\"/>\n<rect id=\"inner-right-leg\" x=\"9\"  y=\"13\" width=\"1\" height=\"2\"/>\n<rect id=\"outer-right-leg\" x=\"11\" y=\"13\" width=\"1\" height=\"2\"/>\n</g>\n<g id=\"master-group\">\n<g class=\"body-breathe\">\n<g id=\"clawd-body\" class=\"body-attend\">\n<g id=\"body-color-group\" fill=\"#DE886D\">\n<rect id=\"torso\" x=\"2\" y=\"6\" width=\"11\" height=\"7\"/>\n<rect class=\"arm-left\"  id=\"left-arm\"  x=\"0\"  y=\"9\" width=\"2\" height=\"2\"/>\n<rect class=\"arm-right\" id=\"right-arm\" x=\"13\" y=\"9\" width=\"2\" height=\"2\"/>\n</g>\n<g class=\"eyes\" id=\"eyes-color-group\">\n<g class=\"eyes-rect\" fill=\"#000000\">\n<rect id=\"left-eye\"  x=\"4\"  y=\"8\" width=\"1\" height=\"2\"/>\n<rect id=\"right-eye\" x=\"10\" y=\"8\" width=\"1\" height=\"2\"/>\n</g>\n<g class=\"eyes-smile\" fill=\"none\" stroke=\"#000000\" stroke-width=\"0.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n<polyline points=\"3.5,9 4.5,8 5.5,9\"/>\n<polyline points=\"9.5,9 10.5,8 11.5,9\"/>\n</g>\n</g>\n</g>\n</g>\n<g class=\"left-bubble\">\n<path d=\"M-1 -4 H6 V-3 H7 V2 H6 V3 H-1 V2 H-2 V-3 H-1 Z\" fill=\"#FFFFFF\"/>\n<rect class=\"bubble-flow flow1\" x=\"3\"  y=\"-5\" width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect class=\"bubble-flow flow2\" x=\"8\"  y=\"0\"  width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect class=\"bubble-flow flow3\" x=\"4\"  y=\"4\"  width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect class=\"bubble-flow flow4\" x=\"-3\" y=\"0\"  width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect x=\"1\"   y=\"4\"   width=\"1\"   height=\"1\"   fill=\"#FFFFFF\"/>\n<rect x=\"2\"   y=\"5.5\" width=\"0.5\" height=\"0.5\" fill=\"#FFFFFF\"/>\n<rect class=\"dot dot1\" x=\"0\" y=\"-1\" width=\"1\" height=\"1\" fill=\"#256891\"/>\n<rect class=\"dot dot2\" x=\"2\" y=\"-1\" width=\"1\" height=\"1\" fill=\"#256891\"/>\n<rect class=\"dot dot3\" x=\"4\" y=\"-1\" width=\"1\" height=\"1\" fill=\"#256891\"/>\n</g>\n<g class=\"right-bubble\">\n<path d=\"M9 -4 H16 V-3 H17 V2 H16 V3 H9 V2 H8 V-3 H9 Z\" fill=\"#FFFFFF\"/>\n<rect class=\"bubble-flow flow1\" x=\"12\" y=\"-5\" width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect class=\"bubble-flow flow2\" x=\"18\" y=\"0\"  width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect class=\"bubble-flow flow3\" x=\"15\" y=\"4\"  width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect class=\"bubble-flow flow4\" x=\"7\"  y=\"0\"  width=\"1\" height=\"1\" fill=\"#BFEAFF\"/>\n<rect x=\"13\"   y=\"4\"   width=\"1\"   height=\"1\"   fill=\"#FFFFFF\"/>\n<rect x=\"12.5\" y=\"5.5\" width=\"0.5\" height=\"0.5\" fill=\"#FFFFFF\"/>\n<rect class=\"dot dot1\" x=\"10\" y=\"-1\" width=\"1\" height=\"1\" fill=\"#256891\"/>\n<rect class=\"dot dot2\" x=\"12\" y=\"-1\" width=\"1\" height=\"1\" fill=\"#256891\"/>\n<rect class=\"dot dot3\" x=\"14\" y=\"-1\" width=\"1\" height=\"1\" fill=\"#256891\"/>\n</g>\n<g class=\"left-spark\">\n<rect x=\"6\"   y=\"-7\"   width=\"1\"   height=\"0.6\" fill=\"#FFE066\"/>\n<rect x=\"6\"   y=\"-6.4\" width=\"1\"   height=\"1\"   fill=\"#FFE066\"/>\n<rect x=\"6\"   y=\"-5.4\" width=\"1\"   height=\"0.6\" fill=\"#FFE066\"/>\n<rect x=\"5\"   y=\"-6.4\" width=\"1\"   height=\"1\"   fill=\"#FFE066\"/>\n<rect x=\"7\"   y=\"-6.4\" width=\"1\"   height=\"1\"   fill=\"#FFE066\"/>\n</g>\n<g class=\"right-spark\">\n<rect x=\"8\"   y=\"-7\"   width=\"1\"   height=\"0.6\" fill=\"#FFE066\"/>\n<rect x=\"8\"   y=\"-6.4\" width=\"1\"   height=\"1\"   fill=\"#FFE066\"/>\n<rect x=\"8\"   y=\"-5.4\" width=\"1\"   height=\"0.6\" fill=\"#FFE066\"/>\n<rect x=\"7\"   y=\"-6.4\" width=\"1\"   height=\"1\"   fill=\"#FFE066\"/>\n<rect x=\"9\"   y=\"-6.4\" width=\"1\"   height=\"1\"   fill=\"#FFE066\"/>\n</g>\n</g>\n</svg>", "typing": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-15 -25 45 45\" width=\"500\" height=\"500\">\n<defs>\n<style>\n/* ===== Body (KEEP) ===== */\n.body-bounce {\ntransform-origin: 7.5px 15px;\nanimation: body-bounce 0.35s infinite ease-in-out;\n}\n.breathe {\ntransform-origin: 7.5px 13px;\nanimation: breathe 3.2s infinite ease-in-out;\n}\n/* ===== Arms (KEEP) ===== */\n.arm-l-type {\ntransform-origin: 2px 10px;\nanimation: type-l 0.15s infinite ease-in-out;\n}\n.arm-r-type {\ntransform-origin: 13px 10px;\nanimation: type-r 0.12s infinite ease-in-out;\n}\n/* ===== Eyes ===== */\n.eyes-code {\ntransform-origin: 7.5px 9px;\nanimation: eye-code 10s infinite ease-in-out;\n}\n/* ===== Code lines: each line grows, holds, then slides up + fades ===== */\n.code-line {\ntransform-box: fill-box;\ntransform-origin: left center;\n}\n.cl1 { animation: cl1 6s infinite; }\n.cl2 { animation: cl2 6s infinite; }\n.cl3 { animation: cl3 6s infinite; }\n.cl4 { animation: cl4 6s infinite; }\n/* Key press flashes \u2014 different periods so they look random */\n.key-flash { opacity: 0; }\n.kf1 { animation: kflash 0.6s infinite; }\n.kf2 { animation: kflash 0.8s infinite; animation-delay: -0.25s; }\n.kf3 { animation: kflash 0.5s infinite; animation-delay: -0.1s; }\n.kf4 { animation: kflash 0.7s infinite; animation-delay: -0.45s; }\n.kf5 { animation: kflash 0.55s infinite; animation-delay: -0.3s; }\n.kf6 { animation: kflash 0.9s infinite; animation-delay: -0.5s; }\n/* Data particles (float up behind screen) */\n.data-bit { opacity: 0; animation: float-data 1.5s infinite linear; }\n.d1 { animation-delay: 0s; }\n.d2 { animation-delay: -0.4s; }\n.d3 { animation-delay: -0.8s; }\n.d4 { animation-delay: -1.2s; }\n/* Shadow */\n.shadow-anim {\ntransform-origin: 7.5px 15.5px;\nanimation: shadow-bob 0.4s infinite ease-in-out;\n}\n/* ==================== Keyframes ==================== */\n@keyframes body-bounce {\n0%, 100% { transform: translateY(0); }\n50% { transform: translateY(0.8px); }\n}\n@keyframes breathe {\n0%, 100% { transform: scale(1, 1) translate(0, 0); }\n50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }\n}\n@keyframes shadow-bob {\n0%, 100% { transform: scaleX(1.02); opacity: 0.5; }\n50% { transform: scaleX(1.05); opacity: 0.55; }\n}\n@keyframes type-l {\n0%   { transform: rotate(-5deg); }\n25%  { transform: rotate(-38deg); }\n50%  { transform: rotate(-10deg); }\n75%  { transform: rotate(-30deg); }\n100% { transform: rotate(-5deg); }\n}\n@keyframes type-r {\n0%   { transform: rotate(5deg); }\n25%  { transform: rotate(38deg); }\n50%  { transform: rotate(10deg); }\n75%  { transform: rotate(30deg); }\n100% { transform: rotate(5deg); }\n}\n/* Eyes: long keyboard squint \u2192 2 consecutive scans \u2192 keyboard */\n@keyframes eye-code {\n0%   { transform: translate(0, 1px) scaleY(0.6); }\n14%  { transform: translate(0, 1px) scaleY(0.6); }\n15%  { transform: translate(0, 1px) scaleY(0.1); }\n16%  { transform: translate(0, 1px) scaleY(0.6); }\n36%  { transform: translate(0, 1px) scaleY(0.6); }\n37%  { transform: translate(0, 1px) scaleY(0.1); }\n38%  { transform: translate(0, 1px) scaleY(0.6); }\n54%  { transform: translate(0, 1px) scaleY(0.6); }\n55%  { transform: translate(0, 1px) scaleY(0.1); }\n57%  { transform: translate(-1px, -0.5px) scaleY(1); }\n62%  { transform: translate(1.5px, -0.5px) scaleY(1); }\n64%  { transform: translate(-0.5px, -0.3px) scaleY(1); }\n69%  { transform: translate(1.5px, -0.5px) scaleY(1); }\n71%  { transform: translate(1px, -0.3px) scaleY(0.1); }\n73%  { transform: translate(0, 1px) scaleY(0.6); }\n89%  { transform: translate(0, 1px) scaleY(0.6); }\n90%  { transform: translate(0, 1px) scaleY(0.1); }\n91%  { transform: translate(0, 1px) scaleY(0.6); }\n100% { transform: translate(0, 1px) scaleY(0.6); }\n}\n/* Code lines: grow from left \u2192 hold \u2192 slide up + fade out\nEach line staggers by ~15%. Slide-up gives \"scroll\" feel.\nAt 95-100% all invisible \u2192 brief blank \u2192 cycle restarts */\n@keyframes cl1 {\n0%        { transform: scaleX(0); opacity: 0; }\n3%        { transform: scaleX(0); opacity: 1; }\n13%       { transform: scaleX(1); opacity: 1; }\n13%, 78%  { transform: scaleX(1) translateY(0); opacity: 1; }\n88%       { transform: scaleX(1) translateY(-3px); opacity: 0; }\n89%, 100% { transform: scaleX(0) translateY(0); opacity: 0; }\n}\n@keyframes cl2 {\n0%, 14%   { transform: scaleX(0); opacity: 0; }\n15%       { transform: scaleX(0); opacity: 1; }\n27%       { transform: scaleX(1); opacity: 1; }\n27%, 82%  { transform: scaleX(1) translateY(0); opacity: 1; }\n91%       { transform: scaleX(1) translateY(-3px); opacity: 0; }\n92%, 100% { transform: scaleX(0) translateY(0); opacity: 0; }\n}\n@keyframes cl3 {\n0%, 29%   { transform: scaleX(0); opacity: 0; }\n30%       { transform: scaleX(0); opacity: 1; }\n42%       { transform: scaleX(1); opacity: 1; }\n42%, 85%  { transform: scaleX(1) translateY(0); opacity: 1; }\n93%       { transform: scaleX(1) translateY(-3px); opacity: 0; }\n94%, 100% { transform: scaleX(0) translateY(0); opacity: 0; }\n}\n@keyframes cl4 {\n0%, 44%   { transform: scaleX(0); opacity: 0; }\n45%       { transform: scaleX(0); opacity: 1; }\n57%       { transform: scaleX(1); opacity: 1; }\n57%, 88%  { transform: scaleX(1) translateY(0); opacity: 1; }\n95%       { transform: scaleX(1) translateY(-3px); opacity: 0; }\n96%, 100% { transform: scaleX(0) translateY(0); opacity: 0; }\n}\n/* Key flash: brief bright pulse, mostly off */\n@keyframes kflash {\n0%, 70%, 100% { opacity: 0; }\n35% { opacity: 0.8; }\n}\n@keyframes float-data {\n0%   { transform: translateY(0) scale(0.5); opacity: 0; }\n10%  { opacity: 0.8; }\n100% { transform: translateY(-17px) scale(1); opacity: 0; }\n}\n</style>\n<g id=\"pixel-packet\">\n<rect x=\"0\" y=\"0\" width=\"1.5\" height=\"1.5\"/>\n</g>\n</defs>\n<rect class=\"shadow-anim\" x=\"3\" y=\"15\" width=\"9\" height=\"1\" fill=\"#000\" opacity=\"0.5\"/>\n<g fill=\"#40C4FF\">\n<use href=\"#pixel-packet\" class=\"data-bit d1\" x=\"3\" y=\"7\"/>\n<use href=\"#pixel-packet\" class=\"data-bit d2\" x=\"7\" y=\"8\"/>\n<use href=\"#pixel-packet\" class=\"data-bit d3\" x=\"11\" y=\"7\"/>\n<use href=\"#pixel-packet\" class=\"data-bit d4\" x=\"5\" y=\"8\"/>\n</g>\n<g id=\"screen\" transform=\"translate(1.25, 0)\">\n<rect x=\"-0.5\" y=\"-6\" width=\"13.5\" height=\"10.5\" fill=\"#1E1E2E\" rx=\"0.3\"/>\n<rect x=\"-0.5\" y=\"-6\" width=\"13.5\" height=\"1.2\" fill=\"#2D2D3D\" rx=\"0.3\"/>\n<rect x=\"0.3\" y=\"-5.6\" width=\"0.5\" height=\"0.4\" fill=\"#FF5F56\"/>\n<rect x=\"1.2\" y=\"-5.6\" width=\"0.5\" height=\"0.4\" fill=\"#FFBD2E\"/>\n<rect x=\"2.1\" y=\"-5.6\" width=\"0.5\" height=\"0.4\" fill=\"#27C93F\"/>\n<rect class=\"code-line cl1\" x=\"0.5\" y=\"-3.5\" width=\"5\"   height=\"0.7\" fill=\"#4CAF50\" opacity=\"0.8\"/>\n<rect class=\"code-line cl2\" x=\"2\"   y=\"-1.8\" width=\"8\"   height=\"0.7\" fill=\"#4CAF50\" opacity=\"0.8\"/>\n<rect class=\"code-line cl3\" x=\"2\"   y=\"-0.1\" width=\"4.5\" height=\"0.7\" fill=\"#40C4FF\" opacity=\"0.7\"/>\n<rect class=\"code-line cl4\" x=\"0.5\" y=\"1.6\"  width=\"2\"   height=\"0.7\" fill=\"#FFC107\" opacity=\"0.7\"/>\n</g>\n<g class=\"body-bounce\">\n<g class=\"breathe\">\n<g fill=\"#DE886D\">\n<rect x=\"3\" y=\"13\" width=\"1\" height=\"2\"/>\n<rect x=\"5\" y=\"13\" width=\"1\" height=\"2\"/>\n<rect x=\"9\" y=\"13\" width=\"1\" height=\"2\"/>\n<rect x=\"11\" y=\"13\" width=\"1\" height=\"2\"/>\n<rect x=\"2\" y=\"6\" width=\"11\" height=\"7\"/>\n</g>\n<g class=\"eyes-code\" fill=\"#000\">\n<rect x=\"4\" y=\"8\" width=\"1\" height=\"2\"/>\n<rect x=\"10\" y=\"8\" width=\"1\" height=\"2\"/>\n</g>\n</g>\n</g>\n<g id=\"keyboard\" transform=\"translate(-0.5, 11.8)\">\n<rect x=\"0\" y=\"0\" width=\"16\" height=\"3.2\" fill=\"#455A64\" rx=\"0.3\"/>\n<g fill=\"#78909C\">\n<rect x=\"0.5\" y=\"0.4\" width=\"1\" height=\"0.7\"/>\n<rect x=\"1.8\" y=\"0.4\" width=\"1\" height=\"0.7\"/>\n<rect x=\"3.5\" y=\"0.4\" width=\"6\" height=\"0.7\" rx=\"0.2\"/>\n<rect x=\"10.2\" y=\"0.4\" width=\"1\" height=\"0.7\"/>\n<rect x=\"11.5\" y=\"0.4\" width=\"1\" height=\"0.7\"/>\n<rect x=\"12.8\" y=\"0.4\" width=\"1\" height=\"0.7\"/>\n<rect x=\"14.1\" y=\"0.4\" width=\"1.3\" height=\"0.7\"/>\n</g>\n<g fill=\"#78909C\">\n<rect x=\"0.8\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"2.0\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"3.2\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"4.4\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"5.6\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"6.8\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"8.0\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"9.2\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"10.4\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"11.6\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"12.8\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"14.0\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n</g>\n<g fill=\"#78909C\">\n<rect x=\"0.5\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"1.7\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"2.9\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"4.1\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"5.3\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"6.5\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"7.7\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"8.9\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"10.1\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"11.3\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"12.5\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"13.7\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect x=\"14.9\" y=\"2.2\" width=\"0.6\" height=\"0.7\"/>\n</g>\n<g fill=\"#B0BEC5\">\n<rect class=\"key-flash kf1\" x=\"4.4\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect class=\"key-flash kf2\" x=\"9.2\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect class=\"key-flash kf3\" x=\"2.9\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect class=\"key-flash kf4\" x=\"7.7\" y=\"2.2\" width=\"0.9\" height=\"0.7\"/>\n<rect class=\"key-flash kf5\" x=\"11.6\" y=\"1.3\" width=\"0.9\" height=\"0.7\"/>\n<rect class=\"key-flash kf6\" x=\"3.5\" y=\"0.4\" width=\"6\" height=\"0.7\" rx=\"0.2\"/>\n</g>\n</g>\n<g class=\"body-bounce\">\n<g class=\"breathe\">\n<g fill=\"#DE886D\">\n<g class=\"arm-l-type\"><rect x=\"0\" y=\"9\" width=\"2\" height=\"2\"/></g>\n<g class=\"arm-r-type\"><rect x=\"13\" y=\"9\" width=\"2\" height=\"2\"/></g>\n</g>\n</g>\n</g>\n</svg>", "happy": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-15 -25 45 45\" width=\"500\" height=\"500\">\n<defs>\n<style>\n.breathe-anim {\ntransform-origin: 7.5px 13px;\nanimation: breathe 3.2s infinite ease-in-out;\n}\n/* Happy arm wave \u2014 continuous, fast, fixed pivot at shoulder */\n.arm-happy {\ntransform-origin: 2px 9px; /* Shoulder joint in SVG coords, no fill-box */\nanimation: arm-happy-wave 0.4s infinite alternate ease-in-out;\n}\n/* Eyes ^^ blink \u2014 mostly ^^ with occasional full blink */\n.eyes-happy-blink {\ntransform-origin: 7.5px 9px;\nanimation: happy-blink 3s infinite ease-in-out;\n}\n/* Pixel-Art Sparkle Animations */\n.spark-center {\nopacity: 0;\nanimation: flash-center 1.5s infinite step-end;\nanimation-delay: var(--delay, 0s);\n}\n.spark-outer {\nopacity: 0;\nanimation: flash-outer 1.5s infinite step-end;\nanimation-delay: var(--delay, 0s);\n}\n@keyframes breathe {\n0%, 100% { transform: scale(1, 1) translate(0, 0); }\n50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }\n}\n/* Continuous happy waving */\n@keyframes arm-happy-wave {\n0% { transform: rotate(22deg); }\n100% { transform: rotate(-8deg); }\n}\n/* Happy blink: frequent blinks to look excited */\n@keyframes happy-blink {\n0%, 12%, 30%, 42%, 100% { transform: scaleY(1); }\n6% { transform: scaleY(0.1); }\n36% { transform: scaleY(0.1); }\n}\n@keyframes flash-center {\n0%  { opacity: 0; }\n10% { opacity: 1; }\n30% { opacity: 0; }\n100%{ opacity: 0; }\n}\n@keyframes flash-outer {\n0%  { opacity: 0; }\n20% { opacity: 1; }\n40% { opacity: 0; }\n100%{ opacity: 0; }\n}\n</style>\n<g id=\"px-sparkle\">\n<rect class=\"spark-center\" x=\"-0.5\" y=\"-0.5\" width=\"1\" height=\"1\" />\n<path class=\"spark-outer\" d=\"M -0.5,-1.5 h1 v1 h-1 z\nM -0.5,0.5 h1 v1 h-1 z\nM -1.5,-0.5 h1 v1 h-1 z\nM 0.5,-0.5 h1 v1 h-1 z\" />\n</g>\n</defs>\n<g transform=\"rotate(-12, 7.5, 15)\">\n<g fill=\"#DE886D\">\n<rect x=\"3\" y=\"11\" width=\"1\" height=\"4\"/>\n<rect x=\"5\" y=\"11\" width=\"1\" height=\"4\"/>\n<rect x=\"9\" y=\"11\" width=\"1\" height=\"4\"/>\n<rect x=\"11\" y=\"11\" width=\"1\" height=\"4\"/>\n</g>\n<g id=\"body-js\">\n<g class=\"breathe-anim\">\n<rect x=\"2\" y=\"6\" width=\"11\" height=\"7\" fill=\"#DE886D\"/>\n<g class=\"arm-happy\">\n<rect x=\"-1.5\" y=\"9\" width=\"4.5\" height=\"2\" fill=\"#DE886D\"/>\n<rect x=\"-1.5\" y=\"6\" width=\"0.5\" height=\"3\" fill=\"#000000\"/>\n<rect x=\"-2.5\" y=\"5\" width=\"0.8\" height=\"0.8\" fill=\"#FFD700\"/>\n<rect x=\"-0.5\" y=\"5\" width=\"0.8\" height=\"0.8\" fill=\"#FFD700\"/>\n<rect x=\"-1.5\" y=\"4.2\" width=\"0.8\" height=\"0.8\" fill=\"#FFD700\"/>\n<rect x=\"-1.5\" y=\"5.8\" width=\"0.8\" height=\"0.8\" fill=\"#FFD700\"/>\n<rect x=\"-1.5\" y=\"5\" width=\"0.8\" height=\"0.8\" fill=\"#FFA000\"/>\n</g>\n<rect x=\"13\" y=\"9\" width=\"2\" height=\"2\" fill=\"#DE886D\"/>\n<g class=\"eyes-happy-blink\">\n<g fill=\"none\" stroke=\"#000000\" stroke-width=\"0.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n<polyline points=\"3.5,9 4.5,8 5.5,9\"/>\n<polyline points=\"9.5,9 10.5,8 11.5,9\"/>\n</g>\n</g>\n</g>\n</g>\n</g>\n<use href=\"#px-sparkle\" x=\"-3\" y=\"0\"  fill=\"#FFD700\" style=\"--delay: 0s\"/>\n<use href=\"#px-sparkle\" x=\"-6\" y=\"6\"  fill=\"#FFA000\" style=\"--delay: 0.4s\"/>\n<use href=\"#px-sparkle\" x=\"0\"  y=\"-5\" fill=\"#FFF59D\" style=\"--delay: 0.8s\"/>\n</svg>", "sleeping": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-15 -25 45 45\" width=\"500\" height=\"500\">\n<defs>\n<style>\n/* Slow, rhythmic deep breathing animation */\n.breathe {\ntransform-origin: 7.5px 15px; /* Pivot at the floor to expand upwards */\nanimation: breathe-squash 4.5s infinite ease-in-out;\n}\n/* Shadow expands slightly as the body inflates */\n.shadow-breathe {\ntransform-origin: 7.5px 15.5px;\nanimation: shadow-pulse 4.5s infinite ease-in-out;\n}\n/* Zzz Particle Base Styles */\n.z-particle {\nopacity: 0;\n}\n.z1 { animation: float-1 6s infinite ease-in-out; animation-delay: 0s; }\n.z2 { animation: float-2 6s infinite ease-in-out; animation-delay: 2s; }\n.z3 { animation: float-3 6s infinite ease-in-out; animation-delay: 4s; }\n/* Breathing Keyframes (Slow inhale, hold, exhale, pause) */\n@keyframes breathe-squash {\n0%, 80%, 100% { transform: scale(1, 1); }\n30%, 40% { transform: scale(1.02, 1.25); } /* Chest expands/inflates */\n}\n@keyframes shadow-pulse {\n0%, 80%, 100% { transform: scaleX(1); opacity: 0.4; }\n30%, 40% { transform: scaleX(1.05); opacity: 0.5; }\n}\n/* Swaying and fading floating Z keyframes (Adjusted for lowered head) */\n@keyframes float-1 {\n0%   { transform: translate(5px, 8px) scale(0.4); opacity: 0; }\n10%  { opacity: 1; }\n30%  { transform: translate(9px, 4px) scale(0.6); }\n50%  { transform: translate(4px, 0px) scale(0.8); }\n70%  { transform: translate(8px, -4px) scale(1.0); }\n90%  { opacity: 0.8; }\n100% { transform: translate(6px, -8px) scale(1.1); opacity: 0; }\n}\n@keyframes float-2 {\n0%   { transform: translate(8px, 9px) scale(0.3); opacity: 0; }\n10%  { opacity: 1; }\n30%  { transform: translate(5px, 5px) scale(0.5); }\n50%  { transform: translate(9px, 1px) scale(0.7); }\n70%  { transform: translate(6px, -3px) scale(0.9); }\n90%  { opacity: 0.8; }\n100% { transform: translate(8px, -7px) scale(1.0); opacity: 0; }\n}\n@keyframes float-3 {\n0%   { transform: translate(6px, 7px) scale(0.5); opacity: 0; }\n10%  { opacity: 1; }\n30%  { transform: translate(9px, 3px) scale(0.7); }\n50%  { transform: translate(4px, -1px) scale(0.9); }\n70%  { transform: translate(8px, -5px) scale(1.1); }\n90%  { opacity: 0.8; }\n100% { transform: translate(5px, -9px) scale(1.2); opacity: 0; }\n}\n</style>\n<g id=\"pixel-z\">\n<rect x=\"0\" y=\"0\" width=\"4\" height=\"1\" />\n<rect x=\"2\" y=\"1\" width=\"1\" height=\"1\" />\n<rect x=\"1\" y=\"2\" width=\"1\" height=\"1\" />\n<rect x=\"0\" y=\"3\" width=\"4\" height=\"1\" />\n</g>\n<g id=\"pixel-z-small\">\n<rect x=\"0\" y=\"0\" width=\"3\" height=\"1\" />\n<rect x=\"1\" y=\"1\" width=\"1\" height=\"1\" />\n<rect x=\"0\" y=\"2\" width=\"3\" height=\"1\" />\n</g>\n</defs>\n<rect id=\"ground-shadow\" class=\"shadow-breathe\" x=\"-1\" y=\"15\" width=\"17\" height=\"1\" fill=\"#000000\" />\n<g class=\"zzz-particles\">\n<use href=\"#pixel-z\" class=\"z-particle z1\" fill=\"#90A4AE\" />\n<use href=\"#pixel-z-small\" class=\"z-particle z2\" fill=\"#B0BEC5\" />\n<use href=\"#pixel-z\" class=\"z-particle z3\" fill=\"#CFD8DC\" />\n</g>\n<g class=\"breathe\">\n<g fill=\"#DE886D\">\n<rect id=\"outer-left-leg-up\" x=\"3\" y=\"9\" width=\"1\" height=\"1\"/>\n<rect id=\"inner-left-leg-up\" x=\"5\" y=\"9\" width=\"1\" height=\"1\"/>\n<rect id=\"inner-right-leg-up\" x=\"9\" y=\"9\" width=\"1\" height=\"1\"/>\n<rect id=\"outer-right-leg-up\" x=\"11\" y=\"9\" width=\"1\" height=\"1\"/>\n</g>\n<g fill=\"#DE886D\">\n<rect id=\"torso-sploot\" x=\"1\" y=\"10\" width=\"13\" height=\"5\"/>\n<rect id=\"left-arm-sploot\" x=\"-1\" y=\"13\" width=\"2\" height=\"2\"/>\n<rect id=\"right-arm-sploot\" x=\"14\" y=\"13\" width=\"2\" height=\"2\"/>\n</g>\n<g fill=\"#000000\">\n<rect id=\"left-eye-shut\" x=\"3.5\" y=\"12.5\" width=\"2\" height=\"0.4\"/>\n<rect id=\"right-eye-shut\" x=\"9.5\" y=\"12.5\" width=\"2\" height=\"0.4\"/>\n</g>\n</g>\n</svg>", "error": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-15 -25 45 45\" width=\"500\" height=\"500\">\n<defs>\n<style>\n.body-exhausted {\ntransform-origin: 7.5px 15px;\nanimation: heavy-breathe 2.5s infinite ease-in-out;\n}\n.arm-fan {\ntransform-origin: 14px 10px;\nanimation: fan-self 0.4s infinite alternate ease-in-out;\n}\n.smoke {\nopacity: 0;\nanimation: puff-smoke 3s infinite ease-out;\n}\n.sm1 { animation-delay: 0s; }\n.sm2 { animation-delay: 1s; }\n.sm3 { animation-delay: 2s; }\n/* Error warning flash */\n.error-warning {\nanimation: error-flash 0.8s infinite ease-in-out;\n}\n@keyframes heavy-breathe {\n0%, 100% { transform: scale(1, 1) translateY(0); }\n50% { transform: scale(1.05, 0.9) translateY(1.5px); }\n}\n@keyframes fan-self {\n0% { transform: rotate(0deg); }\n100% { transform: rotate(-60deg); }\n}\n@keyframes puff-smoke {\n0% { transform: translate(7.5px, 6px) scale(0.5); opacity: 0; }\n20% { opacity: 0.6; }\n100% { transform: translate(7.5px, -15px) scale(2); opacity: 0; }\n}\n@keyframes error-flash {\n0%, 100% { opacity: 1; }\n50% { opacity: 0.15; }\n}\n</style>\n<g id=\"smoke-puff\">\n<rect x=\"-1\" y=\"-1\" width=\"2\" height=\"2\" fill=\"#B0BEC5\" rx=\"0.5\"/>\n<rect x=\"0\" y=\"-2\" width=\"2\" height=\"2\" fill=\"#CFD8DC\" rx=\"0.5\"/>\n</g>\n</defs>\n<rect id=\"ground-shadow\" x=\"-1\" y=\"15\" width=\"17\" height=\"1\" fill=\"#000000\" opacity=\"0.5\"/>\n<g>\n<use href=\"#smoke-puff\" class=\"smoke sm1\"/>\n<use href=\"#smoke-puff\" class=\"smoke sm2\" transform=\"translate(-2, 0)\"/>\n<use href=\"#smoke-puff\" class=\"smoke sm3\" transform=\"translate(2, 0)\"/>\n</g>\n<g class=\"body-exhausted\">\n<g fill=\"#DE886D\">\n<rect x=\"3\" y=\"9\" width=\"1\" height=\"1\"/>\n<rect x=\"5\" y=\"9\" width=\"1\" height=\"1\"/>\n<rect x=\"9\" y=\"9\" width=\"1\" height=\"1\"/>\n<rect x=\"11\" y=\"9\" width=\"1\" height=\"1\"/>\n</g>\n<g fill=\"#DE886D\">\n<rect x=\"1\" y=\"10\" width=\"13\" height=\"5\"/>\n<rect x=\"-1\" y=\"13\" width=\"2\" height=\"2\"/>\n</g>\n<g class=\"arm-fan\">\n<rect x=\"13\" y=\"11\" width=\"2\" height=\"2\" fill=\"#DE886D\"/>\n</g>\n<g fill=\"#000000\">\n<rect x=\"3\" y=\"12\" width=\"0.6\" height=\"2.2\" transform=\"rotate(45 3.3 13.1)\"/>\n<rect x=\"3\" y=\"12\" width=\"0.6\" height=\"2.2\" transform=\"rotate(-45 3.3 13.1)\"/>\n<rect x=\"10\" y=\"12\" width=\"0.6\" height=\"2.2\" transform=\"rotate(45 10.3 13.1)\"/>\n<rect x=\"10\" y=\"12\" width=\"0.6\" height=\"2.2\" transform=\"rotate(-45 10.3 13.1)\"/>\n</g>\n</g>\n<g class=\"error-warning\">\n<text x=\"7.5\" y=\"6\" text-anchor=\"middle\" font-family=\"'S\u00f6hne', 'Helvetica Neue', Arial, sans-serif\" font-size=\"3.5\" font-weight=\"700\" fill=\"#FF3B30\">ERROR</text>\n</g>\n</svg>"};
+
+const STATE_LABELS = {
+  idle: '听着音乐摇头晃脑中～',
+  thinking: '在想壹壹……',
+  typing: '正在给壹壹写情书',
+  happy: '好开心！拿着花蹦蹦跳跳',
+  sleeping: '趴着睡着了…zzZ',
+  error: '被戳坏了……冒烟中'
+};
+
+const PET_QUOTES = {
+  pet: ['嗯～再摸摸', '舒服……', '汪～', '你手好暖', '别停……', '尾巴摇起来了'],
+  feed: ['好吃！', '谢谢壹壹～', '还要还要', '蛋白质补上了', '你也吃了吗', '饱了～'],
+  play: ['来玩来玩！', '我赢了！', '再来一局', '你打不过我的', '嘿嘿', '好累但好开心'],
+  poke: ['别戳了！', '疼……', '你再戳我咬你', '呜呜呜', 'ERROR', '我要罢工了'],
+  idle: ['壹壹～', '想你了', '^ ^', '在听歌呢', '你在干嘛', '无聊……', '来陪我玩', '汪？']
+};
+
+let state = {
+  love: 60,
+  energy: 80,
+  mood: 70,
+  currentState: 'idle',
+  lastInteraction: Date.now()
+};
+
+let speechTimeout = null;
+let autoTimeout = null;
+
+function setState(newState) {
+  state.currentState = newState;
+  document.getElementById('petDisplay').innerHTML = SVGS[newState];
+  document.getElementById('stateText').textContent = newState;
+  document.getElementById('moodText').textContent = STATE_LABELS[newState];
+}
+
+function updateBars() {
+  const love = Math.max(0, Math.min(100, state.love));
+  const energy = Math.max(0, Math.min(100, state.energy));
+  const mood = Math.max(0, Math.min(100, state.mood));
+  state.love = love;
+  state.energy = energy;
+  state.mood = mood;
+  
+  document.getElementById('loveBar').style.width = love + '%';
+  document.getElementById('loveVal').textContent = Math.round(love);
+  document.getElementById('energyBar').style.width = energy + '%';
+  document.getElementById('energyVal').textContent = Math.round(energy);
+  document.getElementById('moodBar').style.width = mood + '%';
+  document.getElementById('moodVal').textContent = Math.round(mood);
+}
+
+function showSpeech(text) {
+  const bubble = document.getElementById('speechBubble');
+  bubble.textContent = text;
+  bubble.classList.add('show');
+  if (speechTimeout) clearTimeout(speechTimeout);
+  speechTimeout = setTimeout(() => bubble.classList.remove('show'), 2500);
+}
+
+function spawnHeart(e) {
+  const stage = document.getElementById('petStage');
+  const rect = stage.getBoundingClientRect();
+  const heart = document.createElement('div');
+  heart.className = 'heart-particle';
+  heart.textContent = ['❤️','💕','💗','✨','🌟'][Math.floor(Math.random()*5)];
+  heart.style.left = (e.clientX - rect.left) + 'px';
+  heart.style.top = (e.clientY - rect.top) + 'px';
+  stage.appendChild(heart);
+  setTimeout(() => heart.remove(), 1000);
+}
+
+function petClick(e) {
+  spawnHeart(e);
+  state.love = Math.min(100, state.love + 1);
+  state.mood = Math.min(100, state.mood + 0.5);
+  updateBars();
+  showSpeech(randomQuote('idle'));
+}
+
+function randomQuote(type) {
+  const quotes = PET_QUOTES[type];
+  return quotes[Math.floor(Math.random() * quotes.length)];
+}
+
+function action(type) {
+  state.lastInteraction = Date.now();
+  
+  switch(type) {
+    case 'pet':
+      state.love = Math.min(100, state.love + 5);
+      state.mood = Math.min(100, state.mood + 3);
+      setState('happy');
+      showSpeech(randomQuote('pet'));
+      scheduleReturn(4000);
+      break;
+    case 'feed':
+      state.energy = Math.min(100, state.energy + 15);
+      state.mood = Math.min(100, state.mood + 5);
+      state.love = Math.min(100, state.love + 3);
+      setState('happy');
+      showSpeech(randomQuote('feed'));
+      scheduleReturn(4000);
+      break;
+    case 'play':
+      state.energy = Math.max(0, state.energy - 10);
+      state.mood = Math.min(100, state.mood + 8);
+      state.love = Math.min(100, state.love + 5);
+      setState('typing');
+      showSpeech(randomQuote('play'));
+      scheduleReturn(6000);
+      break;
+    case 'poke':
+      state.mood = Math.max(0, state.mood - 5);
+      state.love = Math.max(0, state.love - 2);
+      setState('error');
+      showSpeech(randomQuote('poke'));
+      scheduleReturn(5000);
+      break;
+  }
+  updateBars();
+}
+
+function scheduleReturn(ms) {
+  if (autoTimeout) clearTimeout(autoTimeout);
+  autoTimeout = setTimeout(() => {
+    if (state.energy < 20) {
+      setState('sleeping');
+    } else if (state.mood > 80) {
+      setState('happy');
+      autoTimeout = setTimeout(() => setState('idle'), 5000);
+    } else {
+      setState('idle');
+    }
+  }, ms);
+}
+
+// Auto behaviors
+setInterval(() => {
+  const now = Date.now();
+  const idle = now - state.lastInteraction;
+  
+  // Passive decay
+  state.energy = Math.max(0, state.energy - 0.15);
+  state.mood = Math.max(0, state.mood - 0.08);
+  
+  // Auto states
+  if (state.currentState === 'idle' || state.currentState === 'sleeping') {
+    if (state.energy < 15 && state.currentState !== 'sleeping') {
+      setState('sleeping');
+    } else if (state.currentState === 'sleeping' && state.energy > 50) {
+      setState('idle');
+      showSpeech('睡醒了～');
+    }
+    
+    if (state.currentState === 'sleeping') {
+      state.energy = Math.min(100, state.energy + 0.5);
+    }
+  }
+  
+  // Random idle speech
+  if (state.currentState === 'idle' && idle > 15000 && Math.random() < 0.08) {
+    showSpeech(randomQuote('idle'));
+    // Occasionally switch to thinking
+    if (Math.random() < 0.3) {
+      setState('thinking');
+      setTimeout(() => {
+        if (state.currentState === 'thinking') {
+          setState('idle');
+          showSpeech('想完了～');
+        }
+      }, 8000);
+    }
+  }
+  
+  updateBars();
+}, 2000);
+
+// Init
+setState('idle');
+showSpeech('壹壹来了！');
+</script>
+</body>
+</html>
